@@ -43,7 +43,7 @@ class ReservationServiceImpl implements ReservationService {
      */
     @Override
     public List<Reservation> findByGuestId(long guestId) {
-        return repository.findByGuestGuestId(guestId)
+        return repository.findByGuestId(guestId)
                 .stream()
                 .map(this::toApi)
                 .toList();
@@ -57,7 +57,7 @@ class ReservationServiceImpl implements ReservationService {
     @Override
     public List<Reservation> findByDateAndGuestId(LocalDate date, long guestId) {
 
-        return repository.findByDateAndGuestGuestId(date,guestId)
+        return repository.findByDateAndGuestId(date,guestId)
                 .stream()
                 .map(this::toApi)
                 .toList();
@@ -111,14 +111,14 @@ class ReservationServiceImpl implements ReservationService {
     private Reservation toApi(ReservationEntity entity) {
         return Reservation.builder()
                 .reservationId(entity.getReservationId())
-                .guestId(entity.getGuest().getGuestId())
-                .roomId(entity.getRoom().getRoomId())
+                .guestId(entity.getGuestId())
+                .roomId(entity.getRoomId())
                 .date(entity.getDate()).build();
     }
 
     private void copy(Reservation reservation, ReservationEntity entity) {
-        entity.getGuest().setGuestId(reservation.getGuestId());
-        entity.getRoom().setRoomId(reservation.getRoomId());
+        entity.setGuestId(reservation.getGuestId());
+        entity.setRoomId(reservation.getRoomId());
         entity.setDate(reservation.getDate());
 
     }

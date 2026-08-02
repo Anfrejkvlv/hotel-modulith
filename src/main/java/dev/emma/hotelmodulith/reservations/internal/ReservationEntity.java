@@ -1,7 +1,5 @@
 package dev.emma.hotelmodulith.reservations.internal;
 
-import dev.emma.hotelmodulith.guests.internal.GuestEntity;
-import dev.emma.hotelmodulith.rooms.internal.RoomEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,13 +16,11 @@ public class ReservationEntity {
     @Column(name = "RESERVATION_ID")
     private long reservationId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ROOM_ID", nullable = false)
-    private RoomEntity room;
+    private long roomId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "GUEST_ID", nullable = false)
-    private GuestEntity guest;
+    private long guestId;
 
     @Column(name = "RES_DATE")
     private LocalDate date;

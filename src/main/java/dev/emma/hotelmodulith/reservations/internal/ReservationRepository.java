@@ -8,7 +8,7 @@ import java.util.List;
 
 @Repository
 interface ReservationRepository extends JpaRepository<ReservationEntity, Long> {
-    List<ReservationEntity> findByGuestGuestId(long guestId);
+    List<ReservationEntity> findByGuestId(long guestId);
     List<ReservationEntity> findByDate(LocalDate date);
-    List<ReservationEntity> findByDateAndGuestGuestId(LocalDate date, long guestId);
+    List<ReservationEntity> findByDateAndGuestId(LocalDate date, long guestId);
 }
