@@ -1,7 +1,9 @@
-package dev.emma.hotelmodulith.guests.internal;
+package dev.emma.hotelmodulith.guests.internal.api;
 
-import dev.emma.hotelmodulith.guests.Guest;
 import dev.emma.hotelmodulith.guests.GuestService;
+import dev.emma.hotelmodulith.guests.dto.GuestRequest;
+import dev.emma.hotelmodulith.guests.dto.GuestResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,26 +19,25 @@ class GuestController {
     private final GuestService guestService;
 
     @GetMapping
-    public ResponseEntity<List<Guest>> getGuests(@RequestParam(required = false) String emailAddress) {
+    public ResponseEntity<List<GuestResponse>> getGuests(@RequestParam(required = false) String emailAddress) {
         return ResponseEntity.ok(guestService.findAll(emailAddress));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<Guest> create(@RequestBody Guest guest) {
-        return ResponseEntity.ok(guestService.create(guest));
+    public ResponseEntity<GuestResponse> create(@Valid @RequestBody GuestRequest request) {
+        return ResponseEntity.ok(guestService.create(request));
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Guest> getGuest(@PathVariable long id) {
+    public ResponseEntity<GuestResponse> getGuest(@PathVariable long id) {
         return ResponseEntity.ok(guestService.findById(id));
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Guest> update(@PathVariable long id, @RequestBody Guest guest) {
-        return ResponseEntity.ok(guestService.update(id, guest));
+    public ResponseEntity<GuestResponse> update(@PathVariable long id, @Valid @RequestBody GuestRequest request) {
+        return ResponseEntity.ok(guestService.update(id, request));
     }
 
     @DeleteMapping("/{id}")

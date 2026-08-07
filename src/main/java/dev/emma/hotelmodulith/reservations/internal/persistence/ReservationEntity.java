@@ -1,15 +1,14 @@
-package dev.emma.hotelmodulith.reservations.internal;
+package dev.emma.hotelmodulith.reservations.internal.persistence;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "RESERVATIONS")
-@Getter @Setter @NoArgsConstructor
+@Getter @Setter @NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor
+@Builder
 public class ReservationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,6 +21,6 @@ public class ReservationEntity {
     @JoinColumn(name = "GUEST_ID", nullable = false)
     private long guestId;
 
-    @Column(name = "RES_DATE")
+    @Column(name = "RES_DATE",  nullable = false)
     private LocalDate date;
 }

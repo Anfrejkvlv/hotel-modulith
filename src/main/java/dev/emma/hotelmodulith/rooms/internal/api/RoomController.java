@@ -1,7 +1,9 @@
-package dev.emma.hotelmodulith.rooms.internal;
+package dev.emma.hotelmodulith.rooms.internal.api;
 
-import dev.emma.hotelmodulith.rooms.Room;
 import dev.emma.hotelmodulith.rooms.RoomService;
+import dev.emma.hotelmodulith.rooms.dto.RoomRequest;
+import dev.emma.hotelmodulith.rooms.dto.RoomResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,27 +18,26 @@ class RoomController {
     private final RoomService roomService;
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<List<Room>> getRooms() {
+    public ResponseEntity<List<RoomResponse>> getRooms() {
         return ResponseEntity.ok(roomService.getRooms());
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Room> getRoom(@PathVariable long id) {
+    public ResponseEntity<RoomResponse> getRoom(@PathVariable long id) {
         return ResponseEntity.ok(roomService.getById(id));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<Room> addRoom(@RequestBody Room room) {
-        return ResponseEntity.ok(roomService.create(room));
+    public ResponseEntity<RoomResponse> addRoom(@RequestBody @Valid RoomRequest request) {
+        RoomResponse created=roomService.create(request);
+        return ResponseEntity.ok(created);
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Room> updateRoom(@PathVariable long id, @RequestBody Room room) {
-        return ResponseEntity.ok(roomService.update(room, id));
+    public ResponseEntity<RoomResponse> updateRoom(@PathVariable long id, @RequestBody @Valid RoomRequest request) {
+        return ResponseEntity.ok(roomService.update(request, id));
     }
 
     @DeleteMapping("/{id}")

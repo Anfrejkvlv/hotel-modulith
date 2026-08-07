@@ -1,7 +1,9 @@
-package dev.emma.hotelmodulith.reservations.internal;
+package dev.emma.hotelmodulith.reservations.internal.api;
 
-import dev.emma.hotelmodulith.reservations.Reservation;
 import dev.emma.hotelmodulith.reservations.ReservationService;
+import dev.emma.hotelmodulith.reservations.dto.ReservationRequest;
+import dev.emma.hotelmodulith.reservations.dto.ReservationResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +19,7 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<List<Reservation>> getReservations(
+    public ResponseEntity<List<ReservationResponse>> getReservations(
             @RequestParam(required = false) Long guestId,
             @RequestParam(required = false) LocalDate date) {
         if (date !=null && guestId != null) return ResponseEntity.ok(reservationService.findByDateAndGuestId(date, guestId));
@@ -29,14 +30,13 @@ public class ReservationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<Reservation> addReservation(@RequestBody Reservation reservation) {
-        return ResponseEntity.ok(reservationService.create(reservation));
+    public ResponseEntity<ReservationResponse> addReservation(@RequestBody @Valid ReservationRequest request) {
+        return ResponseEntity.ok(reservationService.create(request));
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<Reservation> updateReservation(@PathVariable long id, @RequestBody Reservation reservation) {
-        return ResponseEntity.ok(reservationService.update(id, reservation));
+    public ResponseEntity<ReservationResponse> updateReservation(@PathVariable long id, @Valid @RequestBody ReservationRequest request) {
+        return ResponseEntity.ok(reservationService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
