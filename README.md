@@ -1,81 +1,191 @@
 # Hotel Modulith
 
-A modular hotel management REST API built with Spring Boot and Spring Modulith. The application manages guests, rooms, and reservations while keeping each business capability isolated as an application module. It also demonstrates domain events: creating a reservation publishes a `ReservationCreatedEvent`, which is handled by the notifications module after the transaction commits.
+A modular hotel management REST API built with **Java 21, Spring Boot and Spring Modulith**.
 
-## Features
+The project models several hotel-related business capabilities — guests, rooms, reservations and notifications — as independent application modules inside a single deployable application.
 
-- Guest CRUD operations with optional email filtering
-- Room CRUD operations
-- Reservation creation, filtering, updating, and deletion
-- Combined room-reservation view for a selected date
-- PostgreSQL persistence through Spring Data JPA
-- SQL schema and sample data initialization
-- Spring Modulith architecture verification and generated PlantUML module documentation
-- Event publication and retry support for incomplete event publications
-- Spring Boot Actuator support
+The main goal is to explore how a modular monolith can keep clear business boundaries while remaining simpler to run than a distributed microservices architecture.
 
-## Technology stack
+## What this project demonstrates
 
-- Java 21
-- Spring Boot 4.1.0
-- Spring Modulith 2.1.0
-- Spring Web MVC
-- Spring Data JPA / Hibernate
-- PostgreSQL
-- Maven Wrapper
-- JUnit 5, AssertJ, and Spring Modulith test support
-- Lombok
+The application provides:
+
+* Guest, room and reservation management
+* Filtering reservations by date and guest
+* A combined room/reservation view
+* PostgreSQL persistence with Spring Data JPA / Hibernate
+* Explicit application module boundaries with Spring Modulith
+* Architecture verification and generated PlantUML documentation
+* Application events with `ReservationCreatedEvent`
+* Retry support for incomplete event publications
+* Spring Boot Actuator for application monitoring
+
+## Tech stack
+
+| Area                 | Technologies                                   |
+| -------------------- | ---------------------------------------------- |
+| Language             | Java 21                                        |
+| Backend              | Spring Boot 4.1.0, Spring Web MVC              |
+| Modular architecture | Spring Modulith 2.1.0                          |
+| Persistence          | Spring Data JPA, Hibernate                     |
+| Database             | PostgreSQL                                     |
+| Build                | Maven Wrapper                                  |
+| Testing              | JUnit 5, AssertJ, Spring Modulith test support |
+| Utilities            | Lombok, Spring Boot Actuator                   |
+
+## Architecture
+
+The application is a **Spring Modulith monolith** rather than a collection of independently deployed services.
+
+Each business capability is isolated as an application module with its own internal implementation.
+
+```text
+hotelmodulith
+├── guests
+├── rooms
+├── reservations
+├── roomreservations
+└── notifications
+```
+
+A typical module follows this structure:
+
+```text
+module/
+├── public contracts / DTOs
+└── internal/
+    ├── controller
+    ├── application service
+    ├── mapper
+    └── persistence
+```
+
+The idea is to keep the public contract of a module small while keeping implementation details inside the module.
+
+### Main modules
+
+**`guests`**
+Handles guest management and optional email-based filtering.
+
+**`rooms`**
+Handles room management.
+
+**`reservations`**
+Handles reservation creation, filtering, update and deletion. It also publishes a `ReservationCreatedEvent`.
+
+**`roomreservations`**
+Provides combined views involving rooms, reservations and guests.
+
+**`notifications`**
+Consumes reservation events and currently logs a confirmation message. It also exposes an administrative endpoint for retrying incomplete event publications.
+
+## Application events
+
+When a reservation is created, the reservation module publishes:
+
+```java
+ReservationCreatedEvent
+```
+
+The notification module consumes the event through:
+
+```java
+@ApplicationModuleListener
+```
+
+The main flow is:
+
+```text
+ReservationController
+        │
+        ▼
+ReservationService
+        │
+        ├── Save reservation
+        │
+        └── Publish ReservationCreatedEvent
+                    │
+                    ▼
+        ReservationNotificationListener
+```
+
+The listener handles the event after the transaction commits.
+
+The project also includes support for retrying incomplete Spring Modulith event publications:
+
+```text
+POST /api/v2/admin/retry/events
+```
+
+The current notification implementation only writes a confirmation message to standard output. An email, messaging or external notification provider could be added later.
+
+## Architecture verification
+
+The project includes an `ArchitectureTest` that verifies the application's module boundaries.
+
+This is important because the architecture should not depend only on package conventions or developer discipline.
+
+The test also generates PlantUML documentation snippets describing the module relationships.
+
+Run:
+
+```bash
+./mvnw test
+```
+
+The generated diagrams can then be used to inspect the module structure.
 
 ## Project structure
 
 ```text
 .
-├── docker-compose.yaml                 # Local PostgreSQL container
-├── pom.xml                             # Maven build and dependencies
-├── mvnw / mvnw.cmd                      # Maven Wrapper launchers
+├── docker-compose.yaml
+├── pom.xml
+├── mvnw
+├── mvnw.cmd
 └── src
     ├── main
     │   ├── java/dev/emma/hotelmodulith
     │   │   ├── HotelModulithApplication.java
-    │   │   ├── guests/                  # Guest module: API, application, persistence
-    │   │   ├── rooms/                   # Room module: API, application, persistence
-    │   │   ├── reservations/            # Reservation module and domain event
-    │   │   ├── roomreservations/         # Combined room availability/reservation view
-    │   │   └── notifications/            # Event listener and failed-event retry API
+    │   │   ├── guests/
+    │   │   ├── rooms/
+    │   │   ├── reservations/
+    │   │   ├── roomreservations/
+    │   │   └── notifications/
     │   └── resources
-    │       ├── application.yaml         # Runtime and datasource configuration
-    │       ├── schema.sql                # Database schema
-    │       └── data.sql                  # Development/sample data
+    │       ├── application.yaml
+    │       ├── schema.sql
+    │       └── data.sql
     └── test
         └── java/dev/emma/hotelmodulith
             ├── HotelModulithApplicationTests.java
-            └── ArchitectureTest.java   # Verifies Modulith boundaries and writes diagrams
+            └── ArchitectureTest.java
 ```
 
-Each main business module follows a similar structure:
+## Running locally
 
-- Public module contracts and DTOs are kept at the module root.
-- HTTP controllers, mappers, application services, and repositories are under `internal`.
-- Persistence is implemented with JPA entities and Spring Data repositories.
+### Prerequisites
 
-## Prerequisites
+* JDK 21
+* Docker and Docker Compose
+* A shell capable of running the Maven Wrapper
 
-- JDK 21
-- Docker and Docker Compose, or an accessible PostgreSQL instance
-- A shell capable of running the Maven Wrapper (`mvnw` on Unix-like systems or `mvnw.cmd` on Windows)
+### 1. Start PostgreSQL
 
-## Database configuration
+```bash
+docker compose up -d
+```
 
-The included `docker-compose.yaml` starts PostgreSQL with:
+The provided Compose configuration starts:
 
 ```text
-Database: hmodulith_db
-User:     hmodulith
-Password: hmodulithapp
-Host port: 5434
+Database:   hmodulith_db
+User:       hmodulith
+Password:   hmodulithapp
+Port:       5434
 ```
 
-The checked-in `src/main/resources/application.yaml` currently points to `localhost:5432` with a different username and password. Before starting the application with the supplied Compose database, update the datasource settings or provide equivalent Spring datasource overrides, for example:
+The default `application.yaml` uses another datasource configuration, so either update it or provide the datasource values through environment variables:
 
 ```bash
 export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5434/hmodulith_db
@@ -83,61 +193,53 @@ export SPRING_DATASOURCE_USERNAME=hmodulith
 export SPRING_DATASOURCE_PASSWORD=hmodulithapp
 ```
 
-The application uses `schema.sql` and `data.sql` on startup. Hibernate schema generation is disabled (`ddl-auto: none`) and SQL initialization is enabled.
+The application uses `schema.sql` and `data.sql` during startup.
 
-## Run locally
+### 2. Start the application
 
-Start PostgreSQL:
-
-```bash
-docker compose up -d
-```
-
-Start the application from the repository root:
+Linux / macOS:
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-On Windows:
+Windows:
 
 ```bat
 mvnw.cmd spring-boot:run
 ```
 
-The API is available at:
+The API starts on:
 
 ```text
 http://localhost:8080
 ```
 
-To stop the database:
+### 3. Stop PostgreSQL
 
 ```bash
 docker compose down
 ```
 
-## Build and test
+## Testing and packaging
 
-Run the test suite:
+Run the tests:
 
 ```bash
 ./mvnw test
 ```
 
-Create an executable Spring Boot jar:
+Build the application:
 
 ```bash
 ./mvnw clean package
 ```
 
-Run the packaged application:
+Run the generated JAR:
 
 ```bash
 java -jar target/hotel-modulith-0.0.1-SNAPSHOT.jar
 ```
-
-`ArchitectureTest` verifies the application module boundaries and generates PlantUML documentation snippets during the test run.
 
 ## REST API
 
@@ -145,63 +247,52 @@ All endpoints use the `/api/v2` prefix.
 
 ### Guests
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v2/guests` | List guests; optionally filter with `?emailAddress=` |
-| `GET` | `/api/v2/guests/{id}` | Get a guest by ID |
-| `POST` | `/api/v2/guests` | Create a guest |
-| `PUT` | `/api/v2/guests/{id}` | Update a guest |
-| `DELETE` | `/api/v2/guests/{id}` | Delete a guest |
+| Method | Endpoint              | Description    |
+| ------ | --------------------- | -------------- |
+| GET    | `/api/v2/guests`      | List guests    |
+| GET    | `/api/v2/guests/{id}` | Get a guest    |
+| POST   | `/api/v2/guests`      | Create a guest |
+| PUT    | `/api/v2/guests/{id}` | Update a guest |
+| DELETE | `/api/v2/guests/{id}` | Delete a guest |
+
+Optional filtering:
+
+```text
+GET /api/v2/guests?emailAddress=ada@example.com
+```
 
 ### Rooms
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v2/rooms` | List rooms |
-| `GET` | `/api/v2/rooms/{id}` | Get a room by ID |
-| `POST` | `/api/v2/rooms` | Create a room |
-| `PUT` | `/api/v2/rooms/{id}` | Update a room |
-| `DELETE` | `/api/v2/rooms/{id}` | Delete a room |
+| Method | Endpoint             | Description   |
+| ------ | -------------------- | ------------- |
+| GET    | `/api/v2/rooms`      | List rooms    |
+| GET    | `/api/v2/rooms/{id}` | Get a room    |
+| POST   | `/api/v2/rooms`      | Create a room |
+| PUT    | `/api/v2/rooms/{id}` | Update a room |
+| DELETE | `/api/v2/rooms/{id}` | Delete a room |
 
 ### Reservations
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v2/reservations` | List reservations |
-| `GET` | `/api/v2/reservations?date=2022-08-01` | Filter by date |
-| `GET` | `/api/v2/reservations?guestId=1` | Filter by guest |
-| `GET` | `/api/v2/reservations?date=2022-08-01&guestId=1` | Filter by date and guest |
-| `POST` | `/api/v2/reservations` | Create a reservation |
-| `PUT` | `/api/v2/reservations/{id}` | Update a reservation |
-| `DELETE` | `/api/v2/reservations/{id}` | Delete a reservation |
+| Method | Endpoint                               | Description          |
+| ------ | -------------------------------------- | -------------------- |
+| GET    | `/api/v2/reservations`                 | List reservations    |
+| GET    | `/api/v2/reservations?date=2022-08-01` | Filter by date       |
+| GET    | `/api/v2/reservations?guestId=1`       | Filter by guest      |
+| POST   | `/api/v2/reservations`                 | Create a reservation |
+| PUT    | `/api/v2/reservations/{id}`            | Update a reservation |
+| DELETE | `/api/v2/reservations/{id}`            | Delete a reservation |
 
-Creating a reservation publishes `ReservationCreatedEvent`. `ReservationNotificationListener` consumes the event with `@ApplicationModuleListener` and currently logs a confirmation message.
-
-### Combined room-reservation view
-
-The `roomreservations` module exposes a view that combines room, reservation, and guest information:
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v2/roomReservations?date=2022-08-01` | Get rooms with reservation and guest details |
-| `GET` | `/api/v2/roomReservations/rooms` | List rooms |
-| `GET` | `/api/v2/roomReservations/reservations` | List/filter reservations |
-| `GET` | `/api/v2/roomReservations/guests` | List guests |
-| `POST` | `/api/v2/roomReservations/rooms` | Create a room |
-| `POST` | `/api/v2/roomReservations/guests` | Create a guest |
-| `POST` | `/api/v2/roomReservations/reservations` | Create a reservation |
-
-The combined controller also provides nested get, update, and delete operations for rooms, guests, and reservations.
-
-### Event administration
+### Combined room/reservation view
 
 ```text
-POST /api/v2/admin/retry/events
+GET /api/v2/roomReservations?date=2022-08-01
 ```
 
-Resubmits incomplete Spring Modulith event publications.
+This module combines room, reservation and guest information into a single view.
 
-## Example requests
+It also exposes additional endpoints for working with rooms, guests and reservations.
+
+## Example request
 
 Create a guest:
 
@@ -225,20 +316,39 @@ List reservations for a date:
 curl 'http://localhost:8080/api/v2/reservations?date=2022-08-01'
 ```
 
-## Architecture
+## Development notes
 
-The application is a Spring Modulith monolith rather than a set of independently deployed services. Modules communicate through explicit services and application events while sharing one runtime and database.
+The project includes development/sample data in:
 
-The main event flow is:
+```text
+src/main/resources/data.sql
+```
 
-1. `ReservationController` accepts a reservation request.
-2. `ReservationServiceImpl` persists the reservation through `ReservationRepository`.
-3. `ReservationServiceImpl` publishes `ReservationCreatedEvent`.
-4. `ReservationNotificationListener` handles the event after the transaction commits.
-5. Spring Modulith event externalization and incomplete-publication support provide the foundation for durable event handling and retry operations.
+This data should not be used in a production environment.
 
-## Notes
+For deployed environments, datasource credentials should be provided through external configuration or a secret management solution rather than committed to the repository.
 
-- The sample data in `src/main/resources/data.sql` is development data and should not be used as production data.
-- Replace the datasource credentials in configuration with secrets managed outside source control for deployed environments.
-- The current notification listener writes a confirmation to standard output; integrating an email, messaging, or external notification provider would be the next step for production use.
+## Possible next steps
+
+Some natural extensions for the project would be:
+
+* Replace the console notification with an email or messaging provider
+* Add more complete business validation
+* Expand integration and API tests
+* Add authentication and authorization
+* Improve observability around event processing
+* Add more explicit module-level architecture tests
+* Document architectural decisions as the project evolves
+
+---
+
+## Why this project?
+
+The project is mainly an exploration of **modular architecture with Spring Modulith**:
+
+* keeping business capabilities isolated;
+* making module boundaries explicit and testable;
+* using application events where loose coupling is useful;
+* keeping the operational simplicity of a single application and database.
+
+The goal is not to claim that a modular monolith is always better than microservices, but to understand the trade-offs and when each approach makes sense.
